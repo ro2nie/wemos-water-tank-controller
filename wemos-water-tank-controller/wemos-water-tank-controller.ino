@@ -1,14 +1,9 @@
+#include "connectionDetails.h"
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
 #define echoPin D7 // Echo Pin
 #define trigPin D6 // Trigger Pin
-
-const char* ssid = "ssid";
-const char* password = "password";
-const char* mqttServer = "ip";
-const char* mqttUser = "user";
-const char* mqttPassword = "mqttpassword";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -20,6 +15,7 @@ const char* waterTankAvailabilityTopic = "water-tank/availability";
 const char* waterPumpStatusTopic = "water-pump/status";
 const char* waterTankLevelTopic = "water-tank/level";
 const char* waterTankIntervalNotPumpingTopic = "water-tank/interval-not-pumping";
+const char* waterTankRestartTopic = "water-tank/restart";
 
 String waterPumpStatus = "OFF";
 
@@ -51,14 +47,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
       waterPumpStatus += (char)payload[i];
     }
     Serial.println("Received " + String(waterPumpStatusTopic) + " " + waterPumpStatus);
-  }
-  else if (strcmp(topic, waterTankIntervalNotPumpingTopic) == 0) {
+  } else if (strcmp(topic, waterTankIntervalNotPumpingTopic) == 0) {
     String intervalNotPumping = "";
     for (int i = 0; i < length; i++) {
       intervalNotPumping += (char)payload[i];
     }
     readingIntervalNotPumping = intervalNotPumping.toInt() * 60000;
     Serial.println("Interval not pumping set to " + String(readingIntervalNotPumping));
+  } else if (strcmp(topic, waterTankRestartTopic) == 0) {
+    ESP.restart();
   }
 }
 
@@ -74,6 +71,7 @@ void reconnect() {
       Serial.println("connected");
       client.subscribe(waterPumpStatusTopic);
       client.subscribe(waterTankIntervalNotPumpingTopic);
+      client.subscribe(waterTankRestartTopic);
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
