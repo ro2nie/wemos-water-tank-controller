@@ -18,13 +18,14 @@ const char* waterTankIntervalNotPumpingTopic = "water-tank/interval-not-pumping"
 const char* waterTankRestartTopic = "water-tank/restart";
 
 String waterPumpStatus = "OFF";
+boolean startMode = true;
 
 int readingIntervalPumping = 10000;
 //Default sensor reading interval when water pump is not on is set to 10 minutes, however this can be set over MQTT.
 int readingIntervalNotPumping = 600000;
 
 void setupWifi() {
-  delay(10);
+  delay(10000);
   // Start by connecting to a WiFi network
   Serial.println("Connecting to: " + String(ssid));
   WiFi.begin(ssid, password);
