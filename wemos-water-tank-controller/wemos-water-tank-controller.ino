@@ -1,12 +1,21 @@
 #include "connectionDetails.h"
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+#include <ArduinoJson.h>
 
 #define echoPin D7 // Echo Pin
 #define trigPin D6 // Trigger Pin
 
 WiFiClient espClient;
 PubSubClient client(espClient);
+
+//Weather
+#define SEALEVELPRESSURE_HPA (1021)
+Adafruit_BME280 bme;
+float temperature, humidity, pressure, altitude;
 
 unsigned long recordSecondsForKeepAlive = 0;
 unsigned long recordSecondsForReadingInterval = 0;
@@ -16,6 +25,7 @@ const char* waterPumpStatusTopic = "water-pump/status";
 const char* waterTankLevelTopic = "water-tank/level";
 const char* waterTankIntervalNotPumpingTopic = "water-tank/interval-not-pumping";
 const char* waterTankRestartTopic = "water-tank/restart";
+const char* waterTankWeatherTopic = "water-tank/weather";
 
 String waterPumpStatus = "OFF";
 boolean startMode = true;
@@ -83,8 +93,35 @@ void reconnect() {
   }
 }
 
+void readWeatherData() {
+  temperature = bme.readTemperature();  
+  humidity = bme.readHumidity();
+  pressure = bme.readPressure() / 100.0F;
+  altitude = bme.readAltitude(SEALEVELPRESSURE_HPA);
+
+  // DEBUG MESSAGES - UNCOMMENT TO TROUBLESHOOT
+//  Serial.print("Temperature");
+//  Serial.println(temperature);
+//  Serial.print("humidity");
+//  Serial.println(humidity);
+//  Serial.print("pressure");
+//  Serial.println(pressure);
+//  Serial.print("altitude");
+//  Serial.println(altitude);
+
+  StaticJsonDocument<200> doc;
+  doc["temperature"] = temperature;
+  doc["humidity"] = humidity;
+  doc["pressure"] = pressure;
+  doc["altitude"] = altitude;
+  String output;
+  serializeJson(doc, output);
+  client.publish(waterTankWeatherTopic, output.c_str());
+}
+
 void setup()
 {
+  bme.begin(0x76);
   Serial.begin (9600);
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
@@ -110,6 +147,7 @@ void keepAlive() {
     Serial.println("Send MQTT keepalive");
     client.publish(waterTankAvailabilityTopic, "ON");
     recordSecondsForKeepAlive = millis();
+    readWeatherData();
   }
 }
 
