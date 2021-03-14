@@ -36,6 +36,8 @@ int readingIntervalNotPumping = 600000;
 
 void setupWifi() {
   delay(10000);
+  // Set hostname
+  WiFi.hostname("water-tank-controller");
   // Start by connecting to a WiFi network
   Serial.println("Connecting to: " + String(ssid));
   WiFi.begin(ssid, password);
